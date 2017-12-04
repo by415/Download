@@ -52,6 +52,7 @@ long long Download::GetFileTotalLen(const std::string &url)
         downloadFileTotalLen = -1;
     }
     curl_easy_cleanup(lenHandle);
+	LOG_INFO("get file total len = %lld",downloadFileTotalLen);
     return downloadFileTotalLen;
 }
 
@@ -80,11 +81,12 @@ int Download::ThreadDownloadFile(const std::string &url,const std::string &saveP
     CURLcode res = curl_easy_perform(downloadHandle);
     if(res != CURLE_OK)
     {
-        LOG_ERROR("curl_easy_perform failed");
-        return -2;
+        LOG_ERROR("curl_easy_perform failed return val = %d",res);
+        return res;
     }
     curl_easy_cleanup(downloadHandle);
-    return 0;
+	LOG_INFO("curl_easy_perform success return val = %d",res);
+    return res;
 }
 
 /*

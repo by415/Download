@@ -7,6 +7,7 @@
 #include"./log/log.h"
 using namespace std;
 
+
 class Download
 {
     public:
