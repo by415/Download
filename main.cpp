@@ -36,7 +36,7 @@ void GetFileName(const std::string& url,std::string& fileName)
 
 
 
-
+/*
 void StartDownload()
 {
     Download test;
@@ -56,15 +56,25 @@ void StartDownload()
     //test.Init(url,path);
 
 }
-
+*/
 
 
 int main()
 {
 
     LOG_INFO("begin download");
-    std::thread tid(StartDownload);
-    tid.join();
+    //std::thread tid(StartDownload);
+    //tid.join();
+    //std::string url = "http://sw.bos.baidu.com/sw-search-sp/software/e25c4cc36a934/QQ_8.9.6.22427_setup.exe";
+    Download download;
+    std::string url = "http://sw.bos.baidu.com/sw-search-sp/software/a728d0427ab6f/npp_7.5.2_Installer.exe";
+    std::string name;
+    GetFileName(url,name);
+    std::string path = "./";
+    //download.CreateThreadDownloadFile(url,path+name,name);
+    download.StartDownloadFile(url,path+name,name);
+    while(1)
+        ;
     LOG_INFO("over download");
     return 0;
 }
