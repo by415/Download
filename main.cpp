@@ -72,8 +72,8 @@ int main()
     std::string name;
     GetFileName(url,name);
     std::string path = "./";
-    //download.CreateThreadDownloadFile(url,path+name,name);
-    download.StartDownloadFile(url,path+name,name);
+    //download.ThreadDownloadFile(url,path+name);
+    download.StartDownloadFile(url,path+name);
     while(1)
         ;
     LOG_INFO("over download");

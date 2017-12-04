@@ -18,8 +18,8 @@ class Download
         }
         ~Download()
         {}
-        void StartDownloadFile(const std::string &url,const std::string &savePath,const std::string &fileName);
-        static int ThreadDownloadFile(const std::string &url,const std::string &savePath,const std::string &fileName);
+        void StartDownloadFile(const std::string &url,const std::string &savePath);
+        static int ThreadDownloadFile(const std::string &url,const std::string &savePath);
         
         long long GetFileTotalLen(const std::string &url); 
     private:

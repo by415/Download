@@ -8,7 +8,7 @@
 *   date:   2017.12.4
 *   author: ali
 */
-long long callback_DownloadData(char *ptr,long long size,long long nmemb,void *stream)
+long long CallBackDownloadData(char *ptr,long long size,long long nmemb,void *stream)
 {
     long long written = fwrite(ptr,size,nmemb,(FILE*)stream);
     return written;
@@ -17,7 +17,7 @@ long long callback_DownloadData(char *ptr,long long size,long long nmemb,void *s
 /*
 *   func:call_back to get file len
 *
-long long GetFileSize(void* ptr, long size, long nmemb, void* data)
+long long CallBackGetFileSize(void* ptr, long size, long nmemb, void* data)
 {  
     return (long long)(size * nmemb);  
 }
@@ -38,9 +38,9 @@ long long Download::GetFileTotalLen(const std::string &url)
     CURLcode res;
     //SET EASY OPT
     curl_easy_setopt(lenHandle,CURLOPT_URL,url.c_str());
-    curl_easy_setopt(lenHandle,CURLOPT_HEADER,1);   //use header to get len 
+    curl_easy_setopt(lenHandle,CURLOPT_HEADER,0L);   //use header to get len 
     curl_easy_setopt(lenHandle,CURLOPT_NOBODY,1L);
-    //curl_easy_setopt(lenHandle,CURLOPT_HEADERFUNCTION,GetFileSize);
+    //curl_easy_setopt(lenHandle,CURLOPT_HEADERFUNCTION,CallBackGetFileSize);
     //curl_easy_setopt(lenHandle,CURLOPT_FOLLOWLOCATION,1L);
 
 
@@ -52,7 +52,7 @@ long long Download::GetFileTotalLen(const std::string &url)
         downloadFileTotalLen = -1;
     }
     curl_easy_cleanup(lenHandle);
-	LOG_INFO("get file total len = %lld",downloadFileTotalLen);
+	LOG_INFO("get file total len = %lld",(long long)downloadFileTotalLen);
     return downloadFileTotalLen;
 }
 
@@ -63,7 +63,7 @@ long long Download::GetFileTotalLen(const std::string &url)
 *   date:   2017.12.4
 *   author: ali
 */
-int Download::ThreadDownloadFile(const std::string &url,const std::string &savePath,const std::string &fileName)
+int Download::ThreadDownloadFile(const std::string &url,const std::string &savePath)
 {
     CURL *downloadHandle = curl_easy_init();
     
@@ -75,7 +75,7 @@ int Download::ThreadDownloadFile(const std::string &url,const std::string &saveP
         return -1;
     }
     curl_easy_setopt(downloadHandle,CURLOPT_URL,url.c_str());
-    curl_easy_setopt(downloadHandle,CURLOPT_WRITEFUNCTION,&callback_DownloadData);
+    curl_easy_setopt(downloadHandle,CURLOPT_WRITEFUNCTION,&CallBackDownloadData);
     curl_easy_setopt(downloadHandle,CURLOPT_WRITEDATA,outFp);
     
     CURLcode res = curl_easy_perform(downloadHandle);
@@ -96,8 +96,8 @@ int Download::ThreadDownloadFile(const std::string &url,const std::string &saveP
 *   date:   2017.12.4
 *   author: ali
 */
-void Download::StartDownloadFile(const std::string &url,const std::string &savePath,const std::string &fileName)
+void Download::StartDownloadFile(const std::string &url,const std::string &savePath)
 {
-    std::thread downloadThread(Download::ThreadDownloadFile,url,savePath,fileName);
+    std::thread downloadThread(Download::ThreadDownloadFile,url,savePath);
     downloadThread.detach();
 }
