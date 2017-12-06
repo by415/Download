@@ -21,7 +21,9 @@ class Download
         void StartDownloadFile(const std::string &url,const std::string &savePath);
         static int ThreadDownloadFile(const std::string &url,const std::string &savePath);
         
-        long long GetFileTotalLen(const std::string &url); 
+        size_t GetFileTotalLen(const std::string &url);
+		std::string GetFileName(const std::string &url);
+		std::string GetFileExtensionName(const std::string &url);
     private:
         volatile long long _totalBytes;
         volatile long long _nowBytes;
