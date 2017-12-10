@@ -1,162 +1,162 @@
 #include "download.h"
 
+#include<thread>
+#include"./log/log.h"
+#include<curl/curl.h>
 
-/*
-*   name:   callback_DownloadData()
-*   func:   download process callback func,write data to file
-*   param:  ptr:the buff to write  size:the data size  nmeme:items nums  stream:file descriptor
-*   date:   2017.12.4
-*   author: ali
-*/
-size_t CallBackDownloadData(char *buff,size_t size,size_t nitems,void *instream)
+size_t Download::CallBackDownloadData(char *buff, size_t size, size_t nitems, void *object)
 {
-    size_t written = fwrite(buff,size,nitems,(FILE*)instream);
-    return written;
+	Download* pDownload = (Download *)object;
+
+	//§Õ?????
+	size_t written = fwrite(buff, size, nitems, pDownload->GetFilePointer());
+	//????????????
+    pDownload->SetNowBytes(pDownload->GetNowBytes() + size*written);
+	return written;
 }
 
-/*
-*   func:call_back to get file len
-*
-size_t CallBackGetFileSize(char *buffer,   size_t size,   size_t nitems,   void *userdata);
+Download::Download()
+	:_outFp(NULL)
+	, _totalBytes(0)
+	, _nowBytes(0)
+{}
+
+Download::~Download()
+{}
+
+void Download::Init(const std::string &url, const std::string &savePath)
 {
-	return size * nitems;
+	_url = url;
+	//????????§³
+	_totalBytes = GetFileTotalLen(_url);
+	_savePath = savePath;
 }
-*/
 
-
-/*
-*   name:   GetFileTotalLen()
-*   func:   get the total of the download file
-*   param:  url:the file url link
-*   date:   2017.12.4
-*   author: ali
-*/
 size_t Download::GetFileTotalLen(const std::string &url)
 {
-    double downloadFileTotalLen=0.0;
-    CURL *lenHandle = curl_easy_init();
-    CURLcode res;
-    //SET EASY OPT
-    curl_easy_setopt(lenHandle,CURLOPT_URL,url.c_str());
-    curl_easy_setopt(lenHandle,CURLOPT_HEADER,1L);   //use header to get len 
-    curl_easy_setopt(lenHandle,CURLOPT_NOBODY,1L);
-    //curl_easy_setopt(lenHandle,CURLOPT_HEADERFUNCTION,CallBackGetFileSize);
-    //curl_easy_setopt(lenHandle,CURLOPT_FOLLOWLOCATION,1L);
+	double downloadFileTotalLen = 0.0;
+	CURL *lenHandle = curl_easy_init();
+	CURLcode res;
+	//SET EASY OPT
+	curl_easy_setopt(lenHandle, CURLOPT_URL, url.c_str());
+	curl_easy_setopt(lenHandle, CURLOPT_HEADER, 1L);   //use header to get len
+	curl_easy_setopt(lenHandle, CURLOPT_NOBODY, 1L);
 
-
-    res = curl_easy_perform(lenHandle);
-	if(res != CURLE_OK)
+	res = curl_easy_perform(lenHandle);
+	if (res != CURLE_OK)
 	{
-		LOG_INFO("curl_easy_perform failed res = %u",res);
+        //LOG_INFO("curl_easy_perform failed res = %u", res);
 	}
 	else
 	{
-		res = curl_easy_getinfo(lenHandle,CURLINFO_CONTENT_LENGTH_DOWNLOAD,&downloadFileTotalLen);
-    	if(res != CURLE_OK)
-    	{
-        	LOG_INFO("get file total failed res = %u",res);
-        	downloadFileTotalLen = -1;
-    	}
+		res = curl_easy_getinfo(lenHandle, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &downloadFileTotalLen);
+		if (res != CURLE_OK)
+		{
+            //LOG_INFO("get file total failed res = %u", res);
+			downloadFileTotalLen = -1;
+		}
 	}
 
-    curl_easy_cleanup(lenHandle);
-	LOG_INFO("get file total len = %lu",(size_t)downloadFileTotalLen);
-    return downloadFileTotalLen;
+	curl_easy_cleanup(lenHandle);
+    //LOG_INFO("get file total len = %lu", (size_t)downloadFileTotalLen);
+	return downloadFileTotalLen;
 }
 
-/*
-*   name:   ThreadDownloadFile()
-*   func:   run the download process
-*   param:  url:the file url savePath:where to save the file include the file name filename:the name you want to save
-*   date:   2017.12.4
-*   author: ali
-*/
-int Download::ThreadDownloadFile(const std::string &url,const std::string &savePath)
+bool Download::ThreadDownloadFile()
 {
-    CURL *downloadHandle = curl_easy_init();
-    
-    FILE *outFp = NULL;
-    outFp = fopen(savePath.c_str(),"wb");
-    if(NULL == outFp)
-    {
-        LOG_ERROR("fopen %s failed",savePath.c_str());
-        return -1;
-    }
-    curl_easy_setopt(downloadHandle,CURLOPT_URL,url.c_str());
-    curl_easy_setopt(downloadHandle,CURLOPT_WRITEFUNCTION,&CallBackDownloadData);
-    curl_easy_setopt(downloadHandle,CURLOPT_WRITEDATA,outFp);
-    
-    CURLcode res = curl_easy_perform(downloadHandle);
-    if(res != CURLE_OK)
-    {
-        LOG_ERROR("curl_easy_perform failed return val = %u",res);
-        return res;
-    }
-    curl_easy_cleanup(downloadHandle);	//clean up the curl handle
-	fclose(outFp);	//close the file
-	LOG_INFO("curl_easy_perform success return val = %u",res);
-    return res;
+	//???????
+	_outFp = fopen(_savePath.c_str(), "wb");
+	if (NULL == _outFp)
+	{
+        //LOG_ERROR("fopen %s failed", _savePath.c_str());
+		return false;
+	}
+
+	//????curl
+	CURL *downloadHandle = curl_easy_init();
+	curl_easy_setopt(downloadHandle, CURLOPT_URL, _url.c_str());
+	curl_easy_setopt(downloadHandle, CURLOPT_WRITEFUNCTION, &Download::CallBackDownloadData);
+	curl_easy_setopt(downloadHandle, CURLOPT_WRITEDATA, this);
+
+	CURLcode res = curl_easy_perform(downloadHandle);
+	if (res != CURLE_OK)
+	{
+        //LOG_ERROR("curl_easy_perform failed return val = %u", res);
+		return false;
+	}
+	curl_easy_cleanup(downloadHandle);	//clean up the curl handle
+
+	fclose(_outFp);	//close the file
+	_outFp = nullptr;
+
+	return true;
 }
 
-/*
-*   name:   StartDownloadFile()
-*   func:   create a thread to download file
-*   param:  url:the file url savePath:where to save the file include the file name filename:the name you want to save
-*   date:   2017.12.4
-*   author: ali
-*/
-void Download::StartDownloadFile(const std::string &url,const std::string &savePath)
+void Download::StartDownloadFile()
 {
-    std::thread downloadThread(Download::ThreadDownloadFile,url,savePath);
-    downloadThread.detach();
+    std::thread(&Download::ThreadDownloadFile, this).detach();
 }
 
-/*
-*   name:   GetFileName()
-*   func:   get file name from url
-*   param:  url:the file url 
-*   date:   2017.12.6
-*   author: ali
-*/
 std::string Download::GetFileName(const std::string &url)
 {
 #ifdef __WIN32
 	std::string pathSeparator = "\\";
-#else 
+#else
 	std::string pathSeparator = "/";
 #endif
-	std::string fileName="";
-	if(!url.empty())
+	std::string fileName = "";
+	if (!url.empty())
 	{
 		size_t index = url.rfind(pathSeparator);
-		if(index != std::string::npos)
+		if (index != std::string::npos)
 		{
-			fileName = url.substr(index+pathSeparator.size());
+			fileName = url.substr(index + pathSeparator.size());
 		}
 	}
-	return fileName;	
+	return fileName;
 }
 
-/*
-*   name:   GetFileExtensionName()
-*   func:   get file extension name from url
-*   param:  url:the file url 
-*   date:   2017.12.6
-*   author: ali
-*/
 std::string Download::GetFileExtensionName(const std::string &url)
-{ 
-	std::string fileExtensionName="";
+{
+	std::string fileExtensionName = "";
 	std::string extensionSeparator = ".";
-	if(!url.empty())
+	if (!url.empty())
 	{
 		size_t index = url.rfind(extensionSeparator);
-		if(index != std::string::npos)
+		if (index != std::string::npos)
 		{
-			fileExtensionName = url.substr(index+extensionSeparator.length());
+			fileExtensionName = url.substr(index + extensionSeparator.length());
 		}
 	}
 	return fileExtensionName;
 }
 
+size_t Download::GetTotalBytes()
+{
+	return _totalBytes;
+}
 
+size_t Download::GetNowBytes()
+{
+	return _nowBytes;
+}
+
+void Download::SetTotalBytes(size_t bytes)
+{
+	_totalBytes = bytes;
+}
+
+void Download::SetNowBytes(size_t bytes)
+{
+	_nowBytes = bytes;
+}
+
+FILE* Download::GetFilePointer()
+{
+	return _outFp;
+}
+
+std::string Download::GetSavePath()
+{
+	return _savePath;
+}
