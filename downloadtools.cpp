@@ -73,6 +73,11 @@ downloadTools::~downloadTools()
 
 void downloadTools::on_Download_clicked()
 {
+    download.append(new Download);
+    preSize.append(0);
+    QString savePath = ui->DisplayFolder->currentText() + '//' + ui->FileInfoWidget->item(0, 0)->text();
+    download.back()->Init(ui->URL->toPlainText().toStdString(), savePath.toStdString());
+
     //将界面转换到正在下载页
     ui->stackedWidget->setCurrentIndex(2);
 
@@ -168,15 +173,13 @@ void downloadTools::on_URL_textChanged()
     }
     else
     {
-        download.append(new Download);
-        preSize.append(0);
-        //Download tempDownload;
+        Download tempDownload;
         string url = ui->URL->toPlainText().toStdString();
         string fileName = "";
-        fileName = download.back()->GetFileName(url);
+        fileName = tempDownload.GetFileName(url);
         string extensionName = "";
-        extensionName = download.back()->GetFileExtensionName(fileName);
-        size_t fileSize = download.back()->GetFileTotalLen(url);
+        extensionName = tempDownload.GetFileExtensionName(fileName);
+        size_t fileSize = tempDownload.GetFileTotalLen(url);
         if((fileSize > 0) && (fileName.size() > 0))
         {
 
@@ -205,9 +208,6 @@ void downloadTools::on_URL_textChanged()
             itemSetFlags->setFlags(itemSetFlags->flags() & (~Qt::ItemIsEditable));
             itemSetFlags = ui->FileInfoWidget->item(row, 2);
             itemSetFlags->setFlags(itemSetFlags->flags() & (~Qt::ItemIsEditable));
-
-            QString savePath = ui->DisplayFolder->currentText() + '//' + ui->FileInfoWidget->item(0, 0)->text();
-            download.back()->Init(ui->URL->toPlainText().toStdString(), savePath.toStdString());
         }
         else
         {
